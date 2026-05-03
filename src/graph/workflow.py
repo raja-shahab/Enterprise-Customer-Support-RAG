@@ -1,19 +1,19 @@
 """
-src/graph/workflow.py  –  LangGraph StateGraph with smart query expansion.
+src/graph/workflow.py  –  LangGraph StateGraph with lazy query expansion.
 
-Optimised flow (happy path — most queries):
-  START → cache_lookup → intent_router → query_transform
-        → retrieval → confidence_check → rerank → context_builder
+Happy path (most queries — NO LLM call before retrieval):
+  START → cache_lookup → intent_router → retrieval
+        → confidence_check → rerank → context_builder
         → generation → cache_store → END
 
-Expansion path (only when confidence low — minority of queries):
-  ... → confidence_check → expand_and_retrieve → rerank → context_builder
-        → generation → cache_store → END
+Expansion path (only when confidence low — complex/ambiguous queries):
+  ... → confidence_check → expand_and_retrieve (filters + variations here)
+        → rerank → context_builder → generation → cache_store → END
 
-Latency savings vs old graph:
-  - No upfront LLM variation call (saves 1-2s for 80% of queries)
-  - Expansion only triggered when score < threshold (handles hard queries)
-  - Reranker on 8 docs with TinyBERT (saves ~8s)
+Latency savings:
+  - query_transform REMOVED from happy path → saves 4s per simple query
+  - Metadata filter extraction only happens when confidence is low
+  - Expansion triggered only when top rerank score < threshold
 """
 from __future__ import annotations
 
@@ -33,7 +33,6 @@ from src.graph.nodes import (
     fallback_node,
     generation_node,
     intent_router_node,
-    query_transform_node,
     rerank_node,
     retrieval_node,
 )
@@ -47,7 +46,7 @@ def route_after_cache(state: ASAState) -> str:
 
 
 def route_after_intent(state: ASAState) -> str:
-    return "chitchat" if state.get("intent") == "chitchat" else "query_transform"
+    return "chitchat" if state.get("intent") == "chitchat" else "retrieval"
 
 
 def route_after_retrieval(state: ASAState) -> str:
@@ -79,7 +78,6 @@ def build_graph() -> Any:
     # ── Nodes ──────────────────────────────────────────────────────────────────
     builder.add_node("cache_lookup",        cache_lookup_node)
     builder.add_node("intent_router",       intent_router_node)
-    builder.add_node("query_transform",     query_transform_node)
     builder.add_node("retrieval",           retrieval_node)
     builder.add_node("confidence_check",    confidence_check_node)
     builder.add_node("expand_and_retrieve", expand_and_retrieve_node)
@@ -99,11 +97,10 @@ def build_graph() -> Any:
     )
     builder.add_conditional_edges(
         "intent_router", route_after_intent,
-        {"chitchat": "chitchat", "query_transform": "query_transform"},
+        {"chitchat": "chitchat", "retrieval": "retrieval"},   # ← direct to retrieval
     )
 
-    builder.add_edge("chitchat",        END)
-    builder.add_edge("query_transform", "retrieval")
+    builder.add_edge("chitchat", END)
 
     builder.add_conditional_edges(
         "retrieval", route_after_retrieval,
@@ -125,7 +122,7 @@ def build_graph() -> Any:
     builder.add_edge("fallback",        END)
 
     compiled = builder.compile()
-    logger.success("LangGraph ASA workflow compiled.")
+    logger.success("LangGraph ASA workflow compiled — query_transform removed from happy path.")
     return compiled
 
 

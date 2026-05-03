@@ -1,8 +1,7 @@
 """
 src/cache/semantic_cache.py  –  Semantic cache using Redis.
 
-FIX: embed_text_dense now always returns List[float], so no .tolist() needed.
-Cache lookup uses cosine similarity — similar questions hit the cache.
+Uses a connection pool closed cleanly on app shutdown via lifespan.
 """
 from __future__ import annotations
 
@@ -18,18 +17,31 @@ from src.config import get_settings
 from src.ingestion.embedder import embed_text_dense
 
 _settings = get_settings()
-_redis_client: Optional[aioredis.Redis] = None
+_pool: Optional[aioredis.ConnectionPool] = None
 _CACHE_PREFIX = "asa:cache:"
 
 
-def _get_redis() -> aioredis.Redis:
-    global _redis_client
-    if _redis_client is None:
-        kwargs = {"host": _settings.redis_host, "port": _settings.redis_port, "decode_responses": True}
+def _get_pool() -> aioredis.ConnectionPool:
+    global _pool
+    if _pool is None:
+        kwargs = dict(host=_settings.redis_host, port=_settings.redis_port,
+                      decode_responses=True, max_connections=10)
         if _settings.redis_password:
             kwargs["password"] = _settings.redis_password
-        _redis_client = aioredis.Redis(**kwargs)
-    return _redis_client
+        _pool = aioredis.ConnectionPool(**kwargs)
+    return _pool
+
+
+def _get_redis() -> aioredis.Redis:
+    return aioredis.Redis(connection_pool=_get_pool())
+
+
+async def close_pool() -> None:
+    """Call this on app shutdown to avoid 'event loop closed' warnings."""
+    global _pool
+    if _pool is not None:
+        await _pool.aclose()
+        _pool = None
 
 
 def _sha256(text: str) -> str:
@@ -44,28 +56,25 @@ def _cosine_similarity(a: list, b: list) -> float:
 
 
 async def get_cached_answer(query: str) -> Optional[str]:
-    """Return cached answer if a semantically similar query was cached. None on miss."""
     try:
-        redis = _get_redis()
-        # embed_text_dense always returns List[float] — no .tolist() needed
-        query_emb: list = embed_text_dense(query)
-        keys = await redis.keys(f"{_CACHE_PREFIX}*")
-        if not keys:
-            return None
-
-        threshold = _settings.cache_similarity_threshold
-        for key in keys:
-            raw = await redis.get(key)
-            if not raw:
-                continue
-            try:
-                entry = json.loads(raw)
-                sim = _cosine_similarity(query_emb, entry["embedding"])
-                if sim >= threshold:
-                    logger.info(f"Cache HIT (sim={sim:.3f}): {entry['query'][:60]}")
-                    return entry["answer"]
-            except (json.JSONDecodeError, KeyError):
-                continue
+        async with _get_redis() as redis:
+            query_emb: list = embed_text_dense(query)
+            keys = await redis.keys(f"{_CACHE_PREFIX}*")
+            if not keys:
+                return None
+            threshold = _settings.cache_similarity_threshold
+            for key in keys:
+                raw = await redis.get(key)
+                if not raw:
+                    continue
+                try:
+                    entry = json.loads(raw)
+                    sim = _cosine_similarity(query_emb, entry["embedding"])
+                    if sim >= threshold:
+                        logger.info(f"Cache HIT (sim={sim:.3f}): {entry['query'][:60]}")
+                        return entry["answer"]
+                except (json.JSONDecodeError, KeyError):
+                    continue
         return None
     except Exception as exc:
         logger.warning(f"Cache get error: {exc}")
@@ -73,29 +82,27 @@ async def get_cached_answer(query: str) -> Optional[str]:
 
 
 async def store_cached_answer(query: str, answer: str) -> None:
-    """Store query-answer pair in Redis with TTL."""
     if not answer:
         return
     try:
-        redis = _get_redis()
-        # embed_text_dense always returns List[float] — safe to store directly
-        emb: list = embed_text_dense(query)
-        key = f"{_CACHE_PREFIX}{_sha256(query)}"
-        value = json.dumps({"query": query, "embedding": emb, "answer": answer})
-        await redis.set(key, value, ex=_settings.cache_ttl_seconds)
-        logger.debug(f"Cached: {query[:60]}")
+        async with _get_redis() as redis:
+            emb: list = embed_text_dense(query)
+            key = f"{_CACHE_PREFIX}{_sha256(query)}"
+            value = json.dumps({"query": query, "embedding": emb, "answer": answer})
+            await redis.set(key, value, ex=_settings.cache_ttl_seconds)
+            logger.debug(f"Cached: {query[:60]}")
     except Exception as exc:
         logger.warning(f"Cache store error: {exc}")
 
 
 async def invalidate_cache() -> int:
     try:
-        redis = _get_redis()
-        keys = await redis.keys(f"{_CACHE_PREFIX}*")
-        if keys:
-            deleted = await redis.delete(*keys)
-            logger.info(f"Cache cleared: {deleted} entries")
-            return deleted
+        async with _get_redis() as redis:
+            keys = await redis.keys(f"{_CACHE_PREFIX}*")
+            if keys:
+                deleted = await redis.delete(*keys)
+                logger.info(f"Cache cleared: {deleted} entries")
+                return deleted
         return 0
     except Exception as exc:
         logger.error(f"Cache invalidation error: {exc}")
@@ -104,8 +111,8 @@ async def invalidate_cache() -> int:
 
 async def cache_stats() -> dict:
     try:
-        redis = _get_redis()
-        keys = await redis.keys(f"{_CACHE_PREFIX}*")
-        return {"cached_entries": len(keys)}
+        async with _get_redis() as redis:
+            keys = await redis.keys(f"{_CACHE_PREFIX}*")
+            return {"cached_entries": len(keys)}
     except Exception:
         return {"cached_entries": 0}

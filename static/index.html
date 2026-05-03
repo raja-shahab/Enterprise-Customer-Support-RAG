@@ -373,6 +373,17 @@
 </head>
 <body>
 
+
+<!-- ── Rate limit badge (shown in app) ───────────────────────────────────── -->
+<div id="usage-badge" style="display:none;position:fixed;top:14px;right:14px;z-index:999;
+  background:#18181f;border:1px solid rgba(255,255,255,0.09);
+  border-radius:8px;padding:6px 12px;font-size:12px;color:#a09cb8;
+  font-family:'DM Sans',sans-serif;">
+  <span id="usage-text">0 / 5 used today</span>
+  &nbsp;·&nbsp;
+  <a onclick="logout()" style="color:#f87171;cursor:pointer;text-decoration:none;">Sign out</a>
+</div>
+
 <!-- ── Sidebar ── -->
 <aside class="sidebar">
   <div class="logo-area">
@@ -516,7 +527,7 @@
 </aside>
 
 <script>
-const API = 'http://localhost:8000/api/v1';
+const API = 'http://127.0.0.1:8000/api/v1';
 let useStream = true;
 let isLoading = false;
 let queryHistory = [];
@@ -628,7 +639,7 @@ async function batchQuery(query, product) {
   try {
     const res = await fetch(`${API}/query`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ..._authHeader() },
       body: JSON.stringify({ query, stream: false, product_category: product || undefined }),
     });
     const data = await res.json();
@@ -654,10 +665,11 @@ async function streamQuery(query, product) {
   try {
     const res = await fetch(`${API}/query/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ..._authHeader() },
       body: JSON.stringify({ query, stream: true, product_category: product || undefined }),
     });
 
+    if (res.status === 401 || res.status === 403) { showAuthPage(); throw new Error('Not authenticated'); }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     typing.remove();
@@ -951,5 +963,272 @@ function scrollBottom() {
   area.scrollTop = area.scrollHeight;
 }
 </script>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     AUTH PAGE OVERLAY — matches ASA design system exactly
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div id="auth-page" style="
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'DM Sans',sans-serif;
+  opacity:1;transition:opacity 0.3s ease;
+">
+  <!-- Background glow -->
+  <div style="
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);
+    width:600px;height:600px;
+    background:radial-gradient(circle, rgba(124,109,240,0.08) 0%, transparent 70%);
+    pointer-events:none;
+  "></div>
+
+  <div style="
+    position:relative;z-index:1;
+    background:var(--bg-2);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:40px;
+    width:100%;max-width:420px;
+    box-shadow:0 0 80px rgba(124,109,240,0.10), 0 24px 48px rgba(0,0,0,0.4);
+  ">
+
+    <!-- Logo -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px;">
+      <div style="
+        width:42px;height:42px;flex-shrink:0;
+        background:linear-gradient(135deg,var(--accent),var(--teal));
+        border-radius:12px;display:flex;align-items:center;justify-content:center;
+        font-family:'Syne',sans-serif;font-weight:800;font-size:14px;
+        color:#fff;letter-spacing:0.5px;
+      ">ASA</div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--text-1);letter-spacing:-0.3px;">Agentic Support Assistant</div>
+        <div style="font-size:12px;color:var(--text-3);font-family:'DM Mono',monospace;margin-top:2px;">powered by hybrid RAG</div>
+      </div>
+    </div>
+
+    <!-- Tab switcher -->
+    <div style="
+      display:flex;gap:4px;
+      background:var(--bg-3);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:4px;
+      margin-bottom:24px;
+    ">
+      <button id="tab-login" onclick="authTab('login')" style="
+        flex:1;padding:8px 12px;border-radius:7px;border:none;cursor:pointer;
+        background:var(--accent);color:#fff;
+        font-weight:600;font-size:13px;font-family:'DM Sans',sans-serif;
+        transition:all 0.2s;
+      ">Sign In</button>
+      <button id="tab-register" onclick="authTab('register')" style="
+        flex:1;padding:8px 12px;border-radius:7px;border:none;cursor:pointer;
+        background:transparent;color:var(--text-2);
+        font-weight:500;font-size:13px;font-family:'DM Sans',sans-serif;
+        transition:all 0.2s;
+      ">Create Account</button>
+    </div>
+
+    <!-- Form fields -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="position:relative;">
+        <div style="
+          position:absolute;left:13px;top:50%;transform:translateY(-50%);
+          color:var(--text-3);pointer-events:none;font-size:14px;
+        ">✉</div>
+        <input id="auth-email" type="email" placeholder="Email address"
+          onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()"
+          style="
+            width:100%;background:var(--bg-3);
+            border:1px solid var(--border);border-radius:10px;
+            padding:12px 14px 12px 36px;
+            color:var(--text-1);font-size:14px;font-family:'DM Sans',sans-serif;
+            outline:none;transition:border-color 0.2s;box-sizing:border-box;
+          "
+          onfocus="this.style.borderColor='rgba(124,109,240,0.5)'"
+          onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+
+      <div style="position:relative;">
+        <div style="
+          position:absolute;left:13px;top:50%;transform:translateY(-50%);
+          color:var(--text-3);pointer-events:none;font-size:14px;
+        ">🔒</div>
+        <input id="auth-password" type="password" placeholder="Password (min 6 chars)"
+          onkeydown="if(event.key==='Enter')submitAuth()"
+          style="
+            width:100%;background:var(--bg-3);
+            border:1px solid var(--border);border-radius:10px;
+            padding:12px 14px 12px 36px;
+            color:var(--text-1);font-size:14px;font-family:'DM Sans',sans-serif;
+            outline:none;transition:border-color 0.2s;box-sizing:border-box;
+          "
+          onfocus="this.style.borderColor='rgba(124,109,240,0.5)'"
+          onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+
+      <!-- Error message -->
+      <div id="auth-error" style="
+        display:none;
+        background:rgba(248,113,113,0.1);
+        border:1px solid rgba(248,113,113,0.2);
+        border-radius:8px;padding:10px 12px;
+        color:var(--danger);font-size:13px;
+      "></div>
+
+      <!-- Submit button -->
+      <button id="auth-btn" onclick="submitAuth()" style="
+        background:linear-gradient(135deg,var(--accent),#6c5ce7);
+        color:#fff;border:none;border-radius:10px;
+        padding:13px;font-size:14px;font-weight:600;cursor:pointer;
+        font-family:'DM Sans',sans-serif;margin-top:4px;
+        transition:all 0.2s;letter-spacing:0.2px;
+        box-shadow:0 4px 16px rgba(124,109,240,0.3);
+      "
+      onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(124,109,240,0.4)'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(124,109,240,0.3)'">
+        Sign In
+      </button>
+    </div>
+
+    <!-- Footer note -->
+    <div style="
+      margin-top:24px;padding-top:20px;
+      border-top:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;
+    ">
+      <div style="font-size:12px;color:var(--text-3);">
+        <span style="color:var(--teal);font-family:'DM Mono',monospace;">5</span> free queries/day
+      </div>
+      <div style="font-size:12px;color:var(--text-3);">No credit card needed</div>
+    </div>
+  </div>
+</div>
+
+<!-- Usage badge (shown when logged in) -->
+<div id="usage-badge" style="
+  display:none;position:fixed;top:14px;right:14px;z-index:999;
+  background:var(--bg-2);border:1px solid var(--border);
+  border-radius:9px;padding:7px 14px;
+  font-size:12px;color:var(--text-2);
+  font-family:'DM Mono',monospace;
+  display:none;align-items:center;gap:10px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.2);
+">
+  <span id="usage-text">0 / 5 today</span>
+  <span style="color:var(--border);"> | </span>
+  <span onclick="logout()" style="color:var(--danger);cursor:pointer;font-size:11px;">sign out</span>
+</div>
+
+<script>
+// ── Auth State ─────────────────────────────────────────────────────────────────
+let _authMode = 'login';
+let _token = localStorage.getItem('asa_token') || null;
+
+function _authHeader() {
+  return _token ? { 'Authorization': `Bearer ${_token}` } : {};
+}
+
+function authTab(mode) {
+  _authMode = mode;
+  const isLogin = mode === 'login';
+  const tl = document.getElementById('tab-login');
+  const tr = document.getElementById('tab-register');
+  tl.style.background    = isLogin ? 'var(--accent)' : 'transparent';
+  tl.style.color         = isLogin ? '#fff' : 'var(--text-2)';
+  tr.style.background    = !isLogin ? 'var(--accent)' : 'transparent';
+  tr.style.color         = !isLogin ? '#fff' : 'var(--text-2)';
+  document.getElementById('auth-btn').textContent = isLogin ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+async function submitAuth() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl    = document.getElementById('auth-error');
+  const btn      = document.getElementById('auth-btn');
+
+  if (!email || !password) { showAuthError('Please fill in all fields'); return; }
+
+  const prevText = btn.textContent;
+  btn.textContent = 'Please wait…';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+
+  const endpoint = _authMode === 'login' ? '/auth/login' : '/auth/register';
+  try {
+    const res  = await fetch(`${API}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Authentication failed');
+
+    _token = data.access_token;
+    localStorage.setItem('asa_token', _token);
+    onAuthSuccess();
+  } catch (e) {
+    showAuthError(e.message);
+    btn.textContent = prevText;
+    btn.disabled = false;
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function onAuthSuccess() {
+  // Fade out auth page
+  const page = document.getElementById('auth-page');
+  page.style.opacity = '0';
+  setTimeout(() => page.style.display = 'none', 300);
+
+  // Show usage badge
+  const badge = document.getElementById('usage-badge');
+  badge.style.display = 'flex';
+  refreshUsage();
+}
+
+function showAuthPage() {
+  const page = document.getElementById('auth-page');
+  page.style.display = 'flex';
+  setTimeout(() => page.style.opacity = '1', 10);
+}
+
+async function refreshUsage() {
+  if (!_token) return;
+  try {
+    const res  = await fetch(`${API}/auth/usage`, { headers: _authHeader() });
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('usage-text').textContent =
+      `${data.used} / ${data.limit} today`;
+  } catch (_) {}
+}
+
+function logout() {
+  localStorage.removeItem('asa_token');
+  _token = null;
+  document.getElementById('usage-badge').style.display = 'none';
+  showAuthPage();
+}
+
+// ── Auto-refresh usage after each query ───────────────────────────────────────
+const _origSendQuery = window.sendQuery;
+
+// ── Init: check token on page load ────────────────────────────────────────────
+(function init() {
+  if (_token) {
+    fetch(`${API}/auth/me`, { headers: _authHeader() })
+      .then(r => { if (r.ok) { onAuthSuccess(); } else { logout(); } })
+      .catch(() => { showAuthPage(); });
+  }
+  // else auth page stays visible (default display:flex)
+})();
+</script>
+
 </body>
-</html>

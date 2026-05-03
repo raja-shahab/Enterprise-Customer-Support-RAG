@@ -42,6 +42,25 @@ if not os.path.isdir(_STATIC_DIR):
 
 # ─── App ──────────────────────────────────────────────────────────────────────
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app):
+    # ── Startup ───────────────────────────────────────────────────────────────
+    logger.info("ASA startup – pre-loading models…")
+    from src.ingestion.embedder import get_dense_model
+    from src.retrieval.reranker import get_reranker
+    get_dense_model()
+    get_reranker()
+    logger.success("Models loaded. ASA is ready.")
+    yield
+    # ── Shutdown ──────────────────────────────────────────────────────────────
+    logger.info("ASA shutdown – closing Redis pool…")
+    from src.cache.semantic_cache import close_pool
+    await close_pool()
+    logger.success("Redis pool closed cleanly.")
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Agentic Support Assistant (ASA)",
@@ -50,15 +69,20 @@ def create_app() -> FastAPI:
             "TinyBERT reranking, semantic cache, SSE streaming."
         ),
         version="2.0.0",
+        lifespan=lifespan,
     )
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],        # ← change this
+        allow_origins=["*"],       # ← wildcard
         allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ── Auth routes ───────────────────────────────────────────────────────────
+    from src.auth.auth_routes import auth_router
+    app.include_router(auth_router, prefix="/api/v1")
 
     # ── API routes (registered BEFORE static mount so /api/v1/* takes priority) ──
     app.include_router(router, prefix="/api/v1", tags=["ASA"])
@@ -79,15 +103,6 @@ def create_app() -> FastAPI:
         @app.get("/")
         async def root():
             return {"name": "ASA", "version": "2.0.0", "docs": "/docs", "health": "/api/v1/health"}
-
-    @app.on_event("startup")
-    async def startup():
-        logger.info("ASA startup – pre-loading models…")
-        from src.ingestion.embedder import get_dense_model
-        from src.retrieval.reranker import get_reranker
-        get_dense_model()
-        get_reranker()
-        logger.success("Models loaded. ASA is ready.")
 
     return app
 

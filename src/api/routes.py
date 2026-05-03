@@ -14,13 +14,14 @@ import asyncio
 import json
 from typing import AsyncIterator
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from loguru import logger
 
 from src.api.schemas import HealthResponse, IngestRequest, IngestResponse, QueryRequest, QueryResponse
+from src.auth.rate_limiter import check_rate_limit
 from src.cache.semantic_cache import cache_stats, get_cached_answer, invalidate_cache
 from src.config import get_settings
 from src.graph.workflow import get_workflow
@@ -39,21 +40,22 @@ Be concise and professional."""
 # ─── Non-streaming ────────────────────────────────────────────────────────────
 
 @router.post("/query", response_model=QueryResponse)
-async def query_endpoint(req: QueryRequest) -> QueryResponse:
+async def query_endpoint(req: QueryRequest, user: str = Depends(check_rate_limit)) -> QueryResponse:
     graph = get_workflow()
-    initial_state = {"query": req.query, "retry_count": 0, "cached": False, "expansion_done": False}
-    if req.product_category:
-        initial_state["metadata_filters"] = {"product_category": req.product_category, "doc_type": None}
+    initial_state = {
+        "query": req.query, "retry_count": 0, "cached": False, "expansion_done": False,
+        "metadata_filters": {"product_category": req.product_category or None, "doc_type": None},
+    }
     try:
-        state = await graph.ainvoke(initial_state)
+        state = await graph.ainvoke(initial_state) or {}
         return QueryResponse(
-            answer=state.get("answer", ""),
+            answer=state.get("answer") or "",
             citations=state.get("citations") or [],
             intent=state.get("intent"),
             cached=state.get("cached", False),
             query_variations=state.get("query_variations") or [],
-            top_rerank_score=state.get("top_rerank_score") or 0.0,
-            expansion_triggered=state.get("expansion_done") or False,
+            top_rerank_score=state.get("top_rerank_score", 0.0),
+            expansion_triggered=state.get("expansion_done", False),
         )
     except Exception as exc:
         logger.error(f"Query error: {exc}")
@@ -90,7 +92,7 @@ async def _stream_tokens(query: str, context_str: str, citations: list) -> Async
 
 
 @router.post("/query/stream")
-async def query_stream_endpoint(req: QueryRequest) -> StreamingResponse:
+async def query_stream_endpoint(req: QueryRequest, user: str = Depends(check_rate_limit)) -> StreamingResponse:
     """
     SSE streaming endpoint.
     User sees first token in ~300ms even for slow queries.
@@ -110,22 +112,26 @@ async def query_stream_endpoint(req: QueryRequest) -> StreamingResponse:
 
     # Run pipeline through context builder
     graph = get_workflow()
-    initial_state = {"query": req.query, "retry_count": 0, "cached": False, "expansion_done": False}
-    if req.product_category:
-        initial_state["metadata_filters"] = {"product_category": req.product_category, "doc_type": None}
+    initial_state = {
+        "query": req.query, "retry_count": 0, "cached": False, "expansion_done": False,
+        "metadata_filters": {"product_category": req.product_category or None, "doc_type": None},
+    }
 
     try:
         state = await graph.ainvoke(initial_state)
+        if state is None:
+            raise ValueError("Graph returned None state")
     except Exception as exc:
+        _msg = str(exc)
         async def _err():
-            yield f"data: {json.dumps({'event': 'error', 'data': str(exc)})}\n\n"
+            yield f"data: {json.dumps({'event': 'error', 'data': _msg})}\n\n"
         return StreamingResponse(_err(), media_type="text/event-stream")
 
-    context_str = state.get("context_str", "")
-    citations = state.get("citations", [])
+    context_str = (state or {}).get("context_str") or ""
+    citations   = (state or {}).get("citations") or []
 
     # Chitchat / fallback — no streaming needed
-    if not context_str and state.get("answer"):
+    if not context_str and (state or {}).get("answer"):
         answer = state["answer"]
         async def _direct():
             yield f"data: {json.dumps({'event': 'token', 'data': answer})}\n\n"

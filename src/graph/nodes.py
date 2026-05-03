@@ -140,7 +140,7 @@ async def retrieval_node(state: ASAState) -> ASAState:
     First pass: single original query (fast).
     Second pass (if called again after expansion): multiple variations.
     """
-    variations = state.get("query_variations", [state["query"]])
+    variations = state.get("query_variations") or [state["query"]]
     mf = state.get("metadata_filters", {})
     qdrant_filter = build_filter(
         product_category=mf.get("product_category"),
@@ -223,7 +223,7 @@ async def expand_and_retrieve_node(state: ASAState) -> ASAState:
     results_per_variation = await asyncio.gather(*tasks, return_exceptions=True)
 
     # Merge with existing results (union)
-    seen: Dict[str, RetrievedDocument] = {d.doc_id: d for d in state.get("retrieved_docs", [])}
+    seen: Dict[str, RetrievedDocument] = {d.doc_id: d for d in (state.get("retrieved_docs") or [])}
     for result in results_per_variation:
         if isinstance(result, Exception):
             continue
@@ -251,7 +251,7 @@ async def rerank_node(state: ASAState) -> ASAState:
     TinyBERT reranking on top-8 candidates.
     ~10-15ms on CPU (was 10s with MiniLM-L6 on 20 candidates).
     """
-    candidates = state.get("retrieved_docs", [])
+    candidates = state.get("retrieved_docs") or []
     if not candidates:
         return {**state, "reranked_docs": []}
 
@@ -268,11 +268,6 @@ async def rerank_node(state: ASAState) -> ASAState:
         doc.rerank_score = score
         reranked.append(doc)
 
-    # ← ADD THIS: fallback to top retrieved docs if reranker returns nothing
-    if not reranked:
-        logger.warning("Reranker returned empty — using top retrieved docs as fallback")
-        reranked = candidates[:_settings.reranker_top_k]
-
     logger.info(f"Reranked to top {len(reranked)} documents")
     return {**state, "reranked_docs": reranked}
 
@@ -281,7 +276,7 @@ async def rerank_node(state: ASAState) -> ASAState:
 
 async def context_builder_node(state: ASAState) -> ASAState:
     """Format reranked docs into a context block for the LLM."""
-    docs = state.get("reranked_docs", [])
+    docs = state.get("reranked_docs") or state.get("retrieved_docs") or []
     if not docs:
         return {**state, "context_str": "", "citations": []}
 

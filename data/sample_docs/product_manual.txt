@@ -1,0 +1,202 @@
+# Acme Pro – Product Manual v3.2
+
+## 1. Getting Started
+
+### 1.1 System Requirements
+Acme Pro runs in any modern web browser. For the best experience we recommend:
+- Chrome 110+, Firefox 110+, Safari 16+, or Edge 110+
+- Minimum screen resolution: 1280 × 720
+- Stable internet connection (minimum 5 Mbps)
+
+The desktop application is available for Windows 10/11 and macOS 12+.
+Mobile apps are available for iOS 15+ and Android 10+.
+
+### 1.2 Installation
+**Web**: No installation required. Visit app.acme.com and sign in.
+
+**Desktop (Windows)**:
+1. Download the installer from acme.com/download.
+2. Run AcmeSetup.exe and follow the on-screen instructions.
+3. Sign in with your Acme credentials on first launch.
+
+**Desktop (macOS)**:
+1. Download AcmePro.dmg from acme.com/download.
+2. Drag Acme Pro into your Applications folder.
+3. Open the app and sign in.
+
+### 1.3 First-Time Setup
+After signing in for the first time:
+1. Complete your profile (name, avatar, timezone).
+2. Connect your calendar (optional) via Settings → Integrations.
+3. Invite your team via Settings → Team.
+4. Import existing data via Settings → Data → Import.
+
+---
+
+## 2. Core Features
+
+### 2.1 Dashboard
+The dashboard provides a real-time overview of your workspace:
+- **Activity feed**: Recent actions by you and your team.
+- **Quick stats**: Total records, active projects, and storage usage.
+- **Pinned items**: Drag any item onto the dashboard for quick access.
+- **Notifications bell**: Alerts for mentions, assignments, and system events.
+
+### 2.2 Records Management
+Records are the core data unit in Acme Pro. Each record consists of:
+- **Title**: Required. Max 255 characters.
+- **Description**: Optional rich text field supporting Markdown.
+- **Tags**: Optional. Up to 20 tags per record.
+- **Attachments**: Files attached to the record (subject to plan limits).
+- **Custom fields**: Defined per workspace by Admins.
+
+**Creating a record**:
+1. Click the "+ New" button in the top navigation bar.
+2. Fill in the Title and optional Description.
+3. Add tags by typing in the Tags field.
+4. Click "Save" or press Ctrl+Enter (Cmd+Enter on Mac).
+
+**Editing a record**:
+Click any record to open it, then click the edit icon (pencil) in the top right corner.
+All changes are auto-saved every 30 seconds.
+
+**Deleting a record**:
+Open the record and click the three-dot menu → Delete.
+Deleted records are moved to Trash for 30 days before permanent deletion.
+You can restore them from Settings → Data → Trash.
+
+### 2.3 Projects
+Projects group related records together. Key features:
+- **Kanban view**: Drag-and-drop cards across status columns.
+- **List view**: Sortable table with all record fields.
+- **Timeline view**: Gantt-chart style view (Pro plan and above).
+- **Filters**: Filter by assignee, tag, due date, status, or custom fields.
+
+**Creating a project**:
+1. In the left sidebar, click "+ New Project".
+2. Enter a project name and optional description.
+3. Choose a color and icon for easy identification.
+4. Set visibility: Private (owner only), Team (all members), or Public (anyone with link).
+
+### 2.4 Automation
+Acme Pro supports no-code automation workflows:
+- **Triggers**: Record created, record updated, field value changed, date reached, form submitted.
+- **Conditions**: Filter triggers by field values or record properties.
+- **Actions**: Send email notification, update a field, create a new record, call a webhook, post to Slack.
+
+**Creating an automation**:
+1. Open a project and click "Automations" in the top navigation.
+2. Click "+ New Automation".
+3. Choose a trigger, add optional conditions, add one or more actions.
+4. Name the automation and click "Enable".
+
+Automations are limited by plan:
+- Starter: 5 automations, 100 runs/month
+- Pro: 50 automations, 5,000 runs/month
+- Enterprise: Unlimited automations and runs
+
+---
+
+## 3. Advanced Features
+
+### 3.1 Custom Fields
+Admins can create custom fields for records within a project.
+Available field types: Text, Number, Date, Checkbox, Select (single), Multi-select, URL, Email, Phone, Rating (1-5), Formula.
+
+To add a custom field:
+1. Open a project → click the gear icon → "Custom Fields".
+2. Click "+ Add Field", choose a type, and name it.
+3. Click "Save". The field appears on all records in that project.
+
+### 3.2 API Access
+Acme Pro exposes a REST API for programmatic access.
+
+**Base URL**: https://api.acme.com/v2
+
+**Authentication**: Use Bearer token authentication:
+```
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Key endpoints**:
+- GET    /records          – list all records (paginated)
+- POST   /records          – create a new record
+- GET    /records/{id}     – get a specific record
+- PATCH  /records/{id}     – update a specific record
+- DELETE /records/{id}     – delete a record
+- GET    /projects         – list all projects
+- GET    /projects/{id}/records – records in a project
+
+All responses are JSON. Pagination uses cursor-based navigation via the `next_cursor` field.
+
+### 3.3 Data Import
+Supported import formats: CSV, JSON, Notion export, Airtable export.
+
+**CSV import**:
+1. Go to Settings → Data → Import → CSV.
+2. Upload your CSV file (max 10 MB per import).
+3. Map CSV columns to Acme fields.
+4. Click "Import". Large imports run in the background.
+
+**Notion import**:
+1. Export your Notion workspace as HTML from Notion settings.
+2. Upload the ZIP file in Settings → Data → Import → Notion.
+3. Select which pages to import.
+
+### 3.4 Reporting & Analytics
+Available on Pro and Enterprise plans.
+
+Go to Reports in the left sidebar to access:
+- **Activity report**: Who did what, when.
+- **Record report**: Count, status distribution, creation trends over time.
+- **Automation report**: Trigger counts and action success rates.
+- **Storage report**: Usage breakdown by project and file type.
+
+Reports can be exported as CSV or PDF. Scheduled email delivery is available on Enterprise.
+
+---
+
+## 4. Troubleshooting
+
+### 4.1 Desktop App Crashes
+If the desktop app crashes on startup:
+1. Delete the app cache: 
+   - Windows: %APPDATA%\AcrePro\Cache
+   - macOS: ~/Library/Caches/com.acme.pro
+2. Reinstall the latest version from acme.com/download.
+3. If the issue persists, send logs from Help → Send Diagnostic Report.
+
+### 4.2 Sync Issues
+If records are not syncing across devices:
+1. Check your internet connection.
+2. Sign out and sign back in.
+3. On desktop, go to Help → Force Sync.
+4. Check for firewall rules blocking outbound HTTPS to api.acme.com.
+
+### 4.3 Performance Issues
+For slow dashboard loading:
+1. Reduce the number of pinned items on your dashboard.
+2. Archive old projects that are no longer active.
+3. Check if automations are running frequently – disable unused ones.
+
+---
+
+## 5. Security
+
+### 5.1 Role-Based Access Control (RBAC)
+Three built-in roles:
+- **Admin**: Full access, can manage members and billing.
+- **Editor**: Create, edit, and delete records. Cannot manage members or billing.
+- **Viewer**: Read-only access. Cannot create or modify records.
+
+Custom roles are available on Enterprise plans.
+
+### 5.2 Audit Log
+Enterprise plan only. Go to Settings → Security → Audit Log.
+All user actions are logged with timestamp, user, IP address, and action details.
+Logs are retained for 1 year and can be exported as CSV or streamed to a SIEM via webhook.
+
+### 5.3 IP Allowlisting
+Enterprise plan only. Go to Settings → Security → IP Allowlist.
+Add CIDRs or individual IP addresses that are permitted to access the workspace.
+All other IPs will be blocked at the application layer.

@@ -1,0 +1,158 @@
+# Acme SaaS Platform – Frequently Asked Questions
+
+## Account & Authentication
+
+### How do I reset my password?
+To reset your password, navigate to the login page and click "Forgot password?". 
+Enter your registered email address and you will receive a reset link within 5 minutes. 
+The link expires after 24 hours. If you don't receive the email, check your spam folder 
+or contact support@acme.com.
+
+### How do I enable two-factor authentication (2FA)?
+Go to Settings → Security → Two-Factor Authentication. 
+Click "Enable 2FA" and scan the QR code with an authenticator app such as Google Authenticator or Authy. 
+Enter the 6-digit code to confirm setup. After enabling, you will be prompted for a 2FA code at every login.
+
+### How do I change my email address?
+Navigate to Settings → Profile → Email Address. 
+Enter your new email address and click "Update". A verification email will be sent to the new address. 
+You must click the verification link before the change takes effect.
+
+### Can I have multiple accounts with the same email?
+No. Each email address can only be associated with one Acme account. 
+If you need separate workspaces, use our Teams feature to invite collaborators.
+
+---
+
+## Billing & Subscriptions
+
+### What payment methods do you accept?
+We accept all major credit cards (Visa, Mastercard, American Express, Discover), 
+PayPal, and bank transfers for annual Enterprise plans. 
+Cryptocurrency payments are not currently supported.
+
+### How do I cancel my subscription?
+To cancel, go to Settings → Billing → Subscription and click "Cancel Subscription". 
+Your access continues until the end of the current billing period. 
+We do not offer prorated refunds for mid-cycle cancellations.
+You can also email billing@acme.com for assisted cancellation.
+
+### What is your refund policy?
+We offer a full refund within 14 days of initial purchase for new customers. 
+Renewal charges are non-refundable unless there was a billing error on our part. 
+To request a refund, contact billing@acme.com with your invoice number.
+
+### How do I download my invoices?
+Go to Settings → Billing → Invoices. All past invoices are listed and can be downloaded 
+as PDF files. Invoices are generated on the 1st of each month for monthly plans.
+
+### How do I upgrade my plan?
+Navigate to Settings → Billing → Plans. 
+Select the plan you wish to upgrade to and confirm payment. 
+Upgrades take effect immediately and you will be charged a prorated amount 
+for the remainder of the billing cycle.
+
+---
+
+## Features & Usage
+
+### What is the maximum file upload size?
+- Starter Plan: 25 MB per file, 5 GB total storage
+- Pro Plan: 100 MB per file, 50 GB total storage
+- Enterprise Plan: 500 MB per file, unlimited storage
+
+### What file formats are supported?
+We support PDF, DOCX, XLSX, PPTX, PNG, JPG, GIF, MP4, MP3, ZIP, and CSV files. 
+HTML and Markdown files are supported for text documents.
+
+### How do I export my data?
+Go to Settings → Data → Export. 
+You can export all your data as a ZIP archive containing JSON files. 
+Large exports are processed asynchronously and you will receive an email 
+with a download link when ready (usually within 30 minutes).
+
+### How do I add a team member?
+Navigate to Settings → Team → Members and click "Invite Member". 
+Enter their email address and select a role (Admin, Editor, or Viewer). 
+They will receive an invitation email valid for 7 days.
+
+### How many team members can I add?
+- Starter Plan: 1 user (owner only)
+- Pro Plan: up to 10 users
+- Enterprise Plan: unlimited users
+
+---
+
+## Integrations & API
+
+### How do I generate an API key?
+Go to Settings → Developer → API Keys and click "Generate New Key". 
+Give the key a descriptive name and set its expiration date. 
+Store the key securely — it will only be shown once.
+
+### What are the API rate limits?
+- Starter Plan: 100 requests per minute
+- Pro Plan: 1,000 requests per minute
+- Enterprise Plan: 10,000 requests per minute (custom limits available)
+All plans have a burst allowance of 2x the rate limit for up to 10 seconds.
+
+### How do I integrate with Slack?
+Go to Settings → Integrations → Slack and click "Connect". 
+Authorize the Acme app in your Slack workspace. 
+You can then receive notifications and run slash commands directly from Slack.
+
+### Does the API support webhooks?
+Yes. Go to Settings → Developer → Webhooks to configure webhook endpoints. 
+We send events for: record.created, record.updated, record.deleted, 
+billing.payment_succeeded, and billing.payment_failed.
+
+---
+
+## Security & Compliance
+
+### How do I set up SSO (Single Sign-On)?
+SSO is available on Enterprise plans. 
+Contact your account manager or email enterprise@acme.com to get started. 
+We support SAML 2.0 and OIDC protocols, compatible with Okta, Azure AD, and Google Workspace.
+
+### Is my data encrypted?
+Yes. All data is encrypted at rest using AES-256 and in transit using TLS 1.3. 
+Encryption keys are managed by AWS KMS with automatic rotation every 90 days.
+
+### Where is my data stored?
+Data is stored in AWS data centers in the US (us-east-1) by default. 
+Enterprise customers can request EU (eu-west-1) or APAC (ap-southeast-1) data residency.
+
+### Are you GDPR compliant?
+Yes. Acme is fully GDPR compliant. 
+You can submit data deletion requests via Settings → Privacy → Delete My Data, 
+or by emailing privacy@acme.com. Requests are processed within 30 days.
+
+---
+
+## Troubleshooting
+
+### I'm getting a 500 Internal Server Error. What should I do?
+A 500 error indicates a server-side issue. 
+First, check our status page at status.acme.com for any ongoing incidents. 
+If no incident is reported, try refreshing the page or clearing your browser cache. 
+If the error persists, contact support with the request ID shown in the error message.
+
+### The app is loading very slowly. How can I fix this?
+Try the following steps:
+1. Clear your browser cache and cookies.
+2. Disable browser extensions that might interfere.
+3. Try a different browser or incognito mode.
+4. Check your internet connection speed.
+5. Check status.acme.com for any performance degradation notices.
+
+### I cannot log in. My password is correct but login fails.
+Ensure Caps Lock is off. If you use SSO, make sure you are logging in via the SSO button.
+If 2FA is enabled, check that your authenticator app time is synced. 
+If the problem persists, try resetting your password or contact support.
+
+### My files are not syncing. What should I check?
+1. Ensure you have a stable internet connection.
+2. Check that you have not exceeded your storage quota.
+3. Log out and log back in to refresh your session.
+4. Check the desktop app version — update if behind by more than one version.

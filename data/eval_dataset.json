@@ -1,0 +1,82 @@
+[
+  {
+    "question": "How do I reset my password?",
+    "ground_truth": "Go to the login page, click 'Forgot password?', enter your registered email address, and you will receive a reset link within 5 minutes. The link expires after 24 hours."
+  },
+  {
+    "question": "What payment methods does Acme accept?",
+    "ground_truth": "Acme accepts all major credit cards (Visa, Mastercard, American Express, Discover), PayPal, and bank transfers for annual Enterprise plans. Cryptocurrency is not supported."
+  },
+  {
+    "question": "How do I cancel my subscription?",
+    "ground_truth": "Go to Settings → Billing → Subscription and click 'Cancel Subscription'. Access continues until the end of the current billing period. No prorated refunds for mid-cycle cancellations."
+  },
+  {
+    "question": "What is the maximum file upload size for the Pro plan?",
+    "ground_truth": "On the Pro plan, the maximum file size is 100 MB per file, with 50 GB total storage."
+  },
+  {
+    "question": "How many team members can I add on the Pro plan?",
+    "ground_truth": "The Pro plan supports up to 10 users."
+  },
+  {
+    "question": "How do I enable two-factor authentication?",
+    "ground_truth": "Go to Settings → Security → Two-Factor Authentication, click 'Enable 2FA', scan the QR code with an authenticator app, and enter the 6-digit code to confirm."
+  },
+  {
+    "question": "What are the API rate limits for the Pro plan?",
+    "ground_truth": "The Pro plan allows 1,000 API requests per minute with a burst allowance of 2x the rate limit for up to 10 seconds."
+  },
+  {
+    "question": "What is Acme's refund policy?",
+    "ground_truth": "Acme offers a full refund within 14 days of initial purchase for new customers. Renewal charges are non-refundable unless there was a billing error."
+  },
+  {
+    "question": "How do I set up SSO?",
+    "ground_truth": "SSO is available on Enterprise plans. Contact your account manager or email enterprise@acme.com. Acme supports SAML 2.0 and OIDC protocols, compatible with Okta, Azure AD, and Google Workspace."
+  },
+  {
+    "question": "How do I generate an API key?",
+    "ground_truth": "Go to Settings → Developer → API Keys and click 'Generate New Key'. Give it a name, set an expiration date. Store it securely as it is only shown once."
+  },
+  {
+    "question": "Where is my data stored?",
+    "ground_truth": "Data is stored in AWS us-east-1 by default. Enterprise customers can request EU (eu-west-1) or APAC (ap-southeast-1) data residency."
+  },
+  {
+    "question": "How do I export my data?",
+    "ground_truth": "Go to Settings → Data → Export. Data is exported as a ZIP archive with JSON files. Large exports are processed asynchronously and you will receive a download link via email."
+  },
+  {
+    "question": "What file formats can I import?",
+    "ground_truth": "Acme supports CSV, JSON, Notion export, and Airtable export for data import."
+  },
+  {
+    "question": "Is Acme GDPR compliant?",
+    "ground_truth": "Yes. Submit data deletion requests via Settings → Privacy → Delete My Data or email privacy@acme.com. Requests are processed within 30 days."
+  },
+  {
+    "question": "What happens to deleted records?",
+    "ground_truth": "Deleted records are moved to Trash for 30 days before permanent deletion. You can restore them from Settings → Data → Trash."
+  },
+  {
+    "question": "How do I create an automation?",
+    "ground_truth": "Open a project, click 'Automations' in top navigation, then '+ New Automation'. Choose a trigger, add conditions, add actions, name it and click Enable."
+  },
+  {
+    "question": "How many automations can I create on the Pro plan?",
+    "ground_truth": "The Pro plan supports up to 50 automations with 5,000 runs per month."
+  },
+  {
+    "question": "How do I integrate with Slack?",
+    "ground_truth": "Go to Settings → Integrations → Slack and click 'Connect'. Authorize the Acme app in your Slack workspace to receive notifications and run slash commands."
+  },
+  {
+    "question": "What desktop operating systems does Acme support?",
+    "ground_truth": "The desktop app is available for Windows 10/11 and macOS 12+."
+  },
+  {
+    "question": "How do I fix the app crashing on startup?",
+    "ground_truth": "Delete the app cache (Windows: %APPDATA%\\AcrePro\\Cache; macOS: ~/Library/Caches/com.acme.pro), reinstall the latest version, or send diagnostic logs from Help → Send Diagnostic Report."
+  }
+]
